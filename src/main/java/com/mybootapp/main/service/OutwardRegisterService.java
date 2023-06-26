@@ -34,6 +34,13 @@ public class OutwardRegisterService {
 		outwardRegisterRepository.delete(outwardRegister);
 		
 	}
+	public OutwardRegister getById(int outwardRegisterId) {
+		Optional <OutwardRegister> optional=outwardRegisterRepository.findById(outwardRegisterId);
+		if(!optional.isPresent()) {
+			return null;
+		}
+		return optional.get();
+	}
 	
 	
 

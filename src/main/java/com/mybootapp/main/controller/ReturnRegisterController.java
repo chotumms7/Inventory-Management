@@ -1,5 +1,6 @@
 package com.mybootapp.main.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,119 +16,70 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.mybootapp.main.exception.ResourceNotFoundException;
-import com.mybootapp.main.model.Customer;
-import com.mybootapp.main.model.Godown;
-import com.mybootapp.main.model.Manager;
-import com.mybootapp.main.model.Product;
+import com.mybootapp.main.model.OutwardRegister;
 import com.mybootapp.main.model.ReturnRegister;
-import com.mybootapp.main.service.CustomerService;
-import com.mybootapp.main.service.GodownService;
-import com.mybootapp.main.service.ManagerService;
-import com.mybootapp.main.service.ProductService;
+import com.mybootapp.main.service.OutwardRegisterService;
 import com.mybootapp.main.service.ReturnRegisterService;
 
 @RestController
-@RequestMapping("/returnregister")
+@RequestMapping("/returns")
 public class ReturnRegisterController {
-
-	@Autowired
-	private ProductService productService;
-
-	@Autowired
-	private GodownService godownService;
 	
 	@Autowired
-	private CustomerService customerService;
-
+	private ReturnRegisterService returnsService;
+	
 	@Autowired
-	private ManagerService managerService;
-
-	@Autowired
-	private ReturnRegisterService returnRegisterService;
-
-	@PostMapping("/add/{productId}/{godownId}/{customerId}/{managerId}")
-	public ResponseEntity<?> postInwardRegister(@RequestBody ReturnRegister returnRegister,
-			@PathVariable("productId") int productId, @PathVariable("godownId") int godownId,
-			@PathVariable("customerId") int customerId, @PathVariable("managerId") int managerId) throws ResourceNotFoundException {
-		Product product;
-		product = productService.getById(productId);
-		
-		Godown godown;
-		godown = godownService.getById(godownId);
-		
-		Customer customer;
-		customer = customerService.getById(customerId);
-		
-		Manager manager;
-		manager = managerService.getById(managerId);
-		
-		returnRegister.setProduct(product);
-		returnRegister.setGodown(godown);
-		returnRegister.setReturnedBy(customer);
-		returnRegister.setCheckedBy(manager);
-
-		returnRegister = returnRegisterService.insert(returnRegister);
-		return ResponseEntity.status(HttpStatus.OK).body(returnRegister);
+	private OutwardRegisterService outwardRegisterService;
+	
+	@GetMapping("getall")
+	public List<ReturnRegister> getAll(){
+		List<ReturnRegister> list = returnsService.getAll();
+		return list;
 	}
 	
-	@GetMapping("/all")
-	public List<ReturnRegister> getAll() {
-		return returnRegisterService.getAll();
-	}
-	
-	@GetMapping("/one/{id}")
-	public ResponseEntity<?> getOne(@PathVariable int id) {
+	@GetMapping("one/{id}")
+	public ResponseEntity<?> getById(@PathVariable int id) {
+		ReturnRegister returns;
 		try {
-			return ResponseEntity.status(HttpStatus.OK).body(returnRegisterService.getById(id));
+			returns = returnsService.getById(id);
+		} catch (ResourceNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid Id given");
+		}
+		return ResponseEntity.status(HttpStatus.OK).body(returns);
+	}
+	
+	@PostMapping("/add/{outwardRegisterId}")
+	public ResponseEntity<?> addReturns(@PathVariable("outwardRegisterId") int outwardRegisterId,@RequestBody ReturnRegister returns) throws ResourceNotFoundException{
+		OutwardRegister outwardRegister = outwardRegisterService.getOutwardRegister(outwardRegisterId);
+		returns.setOutwardRegister(outwardRegister);
+		returns.setDateOfReturn(LocalDate.now());
+		returns = returnsService.insert(returns);
+		return ResponseEntity.status(HttpStatus.OK).body(returns);
+	}
+	
+	@PutMapping("/update/{returnsId}/{outwardRegisterId}")
+	public ResponseEntity<?> update(@PathVariable int returnId,@PathVariable int outwardRegisterId, @RequestBody ReturnRegister returns) throws ResourceNotFoundException{
+		try {
+			returnsService.getById(returnId);
 		} catch (ResourceNotFoundException e) {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
 		}
-	}
-	
-	@PutMapping("/update/{id}/{productId}/{godownId}/{customerId}/{managerId}")
-	public ResponseEntity<?> update(@PathVariable int id, @PathVariable("productId") int productId,
-			@PathVariable("godownId") int godownId, @PathVariable("customerId") int customerId,
-			@PathVariable("managerId") int managerId, @RequestBody ReturnRegister returnRegister) throws ResourceNotFoundException {
-		try {
-			returnRegisterService.getById(id);
-		} catch (ResourceNotFoundException e) {
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-		}
-		
-		returnRegister.setId(id);
-		
-		Product product;
-		product = productService.getById(productId);
-		
-		Godown godown;
-		godown = godownService.getById(godownId);
-		
-		Customer customer;
-		customer = customerService.getById(customerId);
-		
-		Manager manager;
-		manager = managerService.getById(managerId);
-		
-		returnRegister.setProduct(product);
-		returnRegister.setGodown(godown);
-		returnRegister.setReturnedBy(customer);
-		returnRegister.setCheckedBy(manager);
-
-		returnRegister = returnRegisterService.insert(returnRegister);
-		return ResponseEntity.status(HttpStatus.OK).body(returnRegister);
+		returns.setId(returnId);
+		OutwardRegister outwardRegister = outwardRegisterService.getById(outwardRegisterId);
+		returns.setOutwardRegister(outwardRegister);	
+		returns.setDateOfReturn(LocalDate.now());
+		returnsService.insert(returns);
+		return ResponseEntity.status(HttpStatus.OK).body(returns);
 	}
 	
 	@DeleteMapping("/delete/{id}")
-	public ResponseEntity<?> delete(@PathVariable int id) {
+	public ResponseEntity<?> deleteById(@PathVariable int id){
 		try {
-			returnRegisterService.getById(id);
+			returnsService.getById(id);
 		} catch (ResourceNotFoundException e) {
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-					.body(e.getMessage());
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
 		}
-		
-		returnRegisterService.delete(id);
+		returnsService.delete(id);
 		return ResponseEntity.status(HttpStatus.OK).build();
 	}
-
 }
